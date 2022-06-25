@@ -64,7 +64,7 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     uint256 whitelistSaleStartTime = uint256(config.whitelistSaleStartTime);
 
     require(
-      isSaleOn(price, whitelistSaleStartTime),
+      isSaleOn(whitelistSaleStartTime),
       "whitelist sale has not begun yet"
     );
 
@@ -104,7 +104,7 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     uint256 publicSaleStartTime = uint256(config.publicSaleStartTime);
 
     require(
-      isSaleOn(publicPrice, publicSaleStartTime),
+      isSaleOn(publicSaleStartTime),
       "sale has not begun yet"
     );
     require(totalSupply() + quantity <= collectionSize, "reached max supply");
@@ -125,12 +125,12 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     }
   }
 
-  function isSaleOn(uint256 _price, uint256 _startTime)
+  function isSaleOn(uint256 _startTime)
     public
     view
     returns (bool)
   {
-    return _price != 0 && _startTime != 0 && block.timestamp >= _startTime;
+    return _startTime != 0 && block.timestamp >= _startTime;
   }
 
 
