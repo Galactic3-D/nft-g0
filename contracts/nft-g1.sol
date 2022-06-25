@@ -25,6 +25,8 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
 
   SaleConfig public config;
 
+  // Reserved amount will not affect further whitelist or public mints
+
   constructor(
     string memory name_,
     string memory symbol_,
@@ -158,6 +160,7 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
   }
 
   // For marketing etc.
+  // Reserved amount will not affect further whitelist or public mints
   function reserve(uint256 quantity)
     external
     onlyOwner
