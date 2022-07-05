@@ -52,6 +52,26 @@ const createTestSuite = ({ contract, constructorArgs }) =>
                 });
             });
 
+            context("tokenURI", async function() {
+                it("default", async function() {
+                    // create some tokens
+                    await this.erc721a.reserve(5);
+                    expect(await this.erc721a.totalMinted()).to.equal("5");
+
+                    expect(await this.erc721a.tokenURI(1)).to.be.equal('');
+
+                    const prefix = 'http://example.com/tokens/';
+                    await this.erc721a.setBaseURI(prefix);
+
+                    expect(await this.erc721a.tokenURI(5)).to.be.equal(prefix + '5');
+                    await expect(this.erc721a.tokenURI(6)).to.be.revertedWith('URIQueryForNonexistentToken');
+
+                    const evilPrefix = 'http://evil.com/tokens';
+                    await expect(this.erc721a.connect(this.addr1).setBaseURI(evilPrefix))
+                      .to.be.revertedWith("Ownable: caller is not the owner");
+                });
+            });
+
             context("reserve", async function () {
 
                 it("in valid range and batch size", async function () {
