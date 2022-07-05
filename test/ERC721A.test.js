@@ -26,6 +26,12 @@ const createTestSuite = ({ contract, constructorArgs }) =>
                 this.owner = owner;
                 this.addr1 = addr1;
                 this.addr2 = addr2;
+                const chainId = await getChainId();
+                this.chainId = chainId;
+
+                this.buildWhitelistApproval = (address, quantity) => {
+                    return `${chainId}:${address.toUpperCase()}:${quantity}`;
+                }
             });
 
             context("with no minted tokens", async function () {
@@ -118,7 +124,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
 
                     let signature = await this.signer.signMessage(
-                        `${this.addr1.address.toUpperCase()}:1`
+                        this.buildWhitelistApproval(this.addr1.address, 1)
                     );
 
                     let tx = await this.erc721a.connect(this.addr1).whitelistMint(
@@ -132,7 +138,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
                 it("invalid signature", async function () {
                     let signature = await this.owner.signMessage(
-                        `${this.addr1.address.toUpperCase()}:1`
+                        this.buildWhitelistApproval(this.addr1.address, 1)
                     );
 
                     await expect(this.erc721a.connect(this.addr1).whitelistMint(
@@ -144,7 +150,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
                 it("valid signature, but invalid quantity", async function () {
                     let signature = await this.signer.signMessage(
-                        `${this.addr1.address.toUpperCase()}:1`
+                        this.buildWhitelistApproval(this.addr1.address, 1)
                     );
 
                     await expect(this.erc721a.connect(this.addr1).whitelistMint(
@@ -156,7 +162,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
                 it("buying more than permited for one user", async function () {
                     let signature = await this.signer.signMessage(
-                        `${this.addr1.address.toUpperCase()}:20`
+                        this.buildWhitelistApproval(this.addr1.address, 20)
                     );
 
                     await expect(this.erc721a.connect(this.addr1).whitelistMint(
@@ -168,7 +174,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
                 it("buying more than permited for all users", async function () {
                     let signature = await this.signer.signMessage(
-                        `${this.addr1.address.toUpperCase()}:20`
+                        this.buildWhitelistApproval(this.addr1.address, 20)
                     );
 
                     await expect(this.erc721a.connect(this.addr1).whitelistMint(
@@ -184,7 +190,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
 
                     let signature = await this.signer.signMessage(
-                        `${this.addr1.address.toUpperCase()}:1`
+                        this.buildWhitelistApproval(this.addr1.address, 1)
                     );
 
                     let tx = await this.erc721a.connect(this.addr1).whitelistMint(
@@ -205,7 +211,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
 
                     let signature = await this.signer.signMessage(
-                        `${this.addr1.address.toUpperCase()}:1`
+                        this.buildWhitelistApproval(this.addr1.address, 1)
                     );
 
                     await this.erc721a.connect(this.addr1).whitelistMint(
@@ -233,7 +239,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
                 });
                 it("withdraw accumulated", async function () {
                     let signature = await this.signer.signMessage(
-                        `${this.addr1.address.toUpperCase()}:1`
+                        this.buildWhitelistApproval(this.addr1.address, 1)
                     );
 
                     await this.erc721a.connect(this.addr1).whitelistMint(
@@ -259,7 +265,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
 
                     let signature = await this.signer.signMessage(
-                        `${this.addr1.address.toUpperCase()}:1`
+                        this.buildWhitelistApproval(this.addr1.address, 1)
                     );
 
                     await this.erc721a.connect(this.addr1).whitelistMint(
@@ -289,7 +295,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
                 it("valid signature", async function () {
                     let signature = await this.signer.signMessage(
-                        `${this.addr1.address.toUpperCase()}:1`
+                        this.buildWhitelistApproval(this.addr1.address, 1)
                     );
                     await expect(this.erc721a.connect(this.addr1).whitelistMint(
                         1,
@@ -300,7 +306,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
                 it("invalid signature", async function () {
                     let signature = await this.signer.signMessage(
-                        `111${this.addr1.address.toUpperCase()}:2`
+                        `111${this.buildWhitelistApproval(this.addr1.address, 2)}`
                     );
                     await expect(this.erc721a.connect(this.addr1).whitelistMint(
                         1,
