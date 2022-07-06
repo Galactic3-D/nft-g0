@@ -81,6 +81,8 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     );
 
     bytes memory data = abi.encodePacked(
+        Strings.toString(block.chainid),
+        ":",
         AddressString.toAsciiString(msg.sender),
         ":1"
     );
