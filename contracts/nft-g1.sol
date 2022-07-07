@@ -56,6 +56,7 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
 
   function whitelistMint(
       uint256 quantity,
+      uint256 approvedMaxQuantity,
       bytes memory signature
   )
     external
@@ -76,7 +77,7 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     );
 
     require(
-      numberMinted(msg.sender) + quantity <= 1,
+      numberMinted(msg.sender) + quantity <= approvedMaxQuantity,
       "can not mint this many"
     );
 
@@ -84,7 +85,8 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         Strings.toString(block.chainid),
         ":",
         AddressString.toAsciiString(msg.sender),
-        ":1"
+        ":",
+        Strings.toString(approvedMaxQuantity)
     );
     bytes32 hash = ECDSA.toEthSignedMessageHash(data);
     address signer = ECDSA.recover(hash, signature);
