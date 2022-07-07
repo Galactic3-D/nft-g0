@@ -137,15 +137,14 @@ const createTestSuite = ({ contract, constructorArgs }) =>
                 });
 
                 it("invalid signature", async function () {
-                    let signature = await this.owner.signMessage(
-                        this.buildWhitelistApproval(this.addr1.address, 1)
-                    );
+                    let data = this.buildWhitelistApproval(this.addr1.address, 1);
+                    let signature = await this.owner.signMessage(data);
 
                     await expect(this.erc721a.connect(this.addr1).whitelistMint(
                         1,
                         signature,
                         {value: parseEther("1.1")}
-                    )).to.be.revertedWith('wrong sig');
+                    )).to.be.revertedWith(`wrong signature, expected message ${data} signed by ${this.signer.address.toUpperCase()}`);
                 });
 
                 it("valid signature, but invalid quantity", async function () {
