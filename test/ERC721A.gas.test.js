@@ -33,7 +33,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
             });
 
             context("reserve", async function () {
-                it("in valid range and batch size", async function () {
+                it("in valid range", async function () {
                     expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("0");
                     expect(await this.erc721a.totalMinted()).to.equal("0");
                     for(var i in range(1,20)) {
@@ -47,5 +47,4 @@ const createTestSuite = ({ contract, constructorArgs }) =>
         });
     };
 
-describe("ERC721A", createTestSuite({ contract: "NFTG0RARE", constructorArgs: ["NAME", "SYMBOL", 5, 2000, 2000] }));
-
+describe("ERC721A", createTestSuite({ contract: "NFTG0RARE", constructorArgs: ["NAME", "SYMBOL", 2000, 2000] }));
