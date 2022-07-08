@@ -80,7 +80,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
 
             context("reserve", async function () {
 
-                it("in valid range and batch size", async function () {
+                it("in valid range", async function () {
                     expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("0");
                     expect(await this.erc721a.totalMinted()).to.equal("0");
                     await this.erc721a.reserve(5);
@@ -91,13 +91,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
                     expect(await this.erc721a.totalMinted()).to.equal("15");
                 });
 
-                it("in valid range, but with wrong batch size", async function () {
-                    await expect(this.erc721a.reserve(6)).to.be.revertedWith('can only mint a multiple of the maxBatchSize');
-                    expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("0");
-                    expect(await this.erc721a.totalMinted()).to.equal("0");
-                });
-
-                it("over range, but valid batch size", async function () {
+                it("over range", async function () {
                     await expect(this.erc721a.reserve(100)).to.be.revertedWith('too many already minted before dev mint');
                     expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("0");
 
@@ -410,5 +404,4 @@ const createTestSuite = ({ contract, constructorArgs }) =>
         });
     };
 
-describe("ERC721A", createTestSuite({ contract: "NFTG0RARE", constructorArgs: ["NAME", "SYMBOL", 5, 200, 20] }));
-
+describe("ERC721A", createTestSuite({ contract: "NFTG0RARE", constructorArgs: ["NAME", "SYMBOL", 200, 20] }));

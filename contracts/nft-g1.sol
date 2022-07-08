@@ -14,7 +14,6 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
   uint256 public immutable maxPerAddressDuringMint;
   uint256 public immutable reserved;
   uint256 public immutable collectionSize;
-  uint256 public immutable maxBatchSize;
 
   struct SaleConfig {
     uint32 whitelistSaleStartTime;
@@ -30,19 +29,16 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
   constructor(
     string memory name_,
     string memory symbol_,
-    uint256 maxBatchSize_,
     uint256 collectionSize_,
     uint256 reserved_
   )
   ERC721A(name_, symbol_)
   {
     reserved = reserved_;
-    maxBatchSize = maxBatchSize_;
     collectionSize = collectionSize_;
     maxPerAddressDuringMint = 3;
     config.priceWei = 0.1 ether;
     require(reserved_ <= collectionSize_);
-    require(maxBatchSize_ <= collectionSize_);
   }
 
   modifier callerIsUser() {
@@ -179,14 +175,7 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
       totalSupply() + quantity <= reserved,
       "too many already minted before dev mint"
     );
-    require(
-      quantity % maxBatchSize == 0,
-      "can only mint a multiple of the maxBatchSize"
-    );
-    uint256 numChunks = quantity / maxBatchSize;
-    for (uint256 i = 0; i < numChunks; i++) {
-      _safeMint(msg.sender, maxBatchSize);
-    }
+    _safeMint(msg.sender, quantity);
   }
 
   // // metadata URI
