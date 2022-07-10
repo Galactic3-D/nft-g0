@@ -24,7 +24,8 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
 
   SaleConfig public config;
 
-  // Reserved amount will not affect further whitelist or public mints
+  // Reserved amount is counted separately and cannot be used in whitelist or public sale
+  uint256 public mintedReservedTokens;
 
   constructor(
     string memory name_,
@@ -35,8 +36,10 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
   ERC721A(name_, symbol_)
   {
     reserved = reserved_;
+    mintedReservedTokens = 0;
     collectionSize = collectionSize_;
-    maxPerAddressDuringMint = 3;
+    // TODO: make configurable
+    maxPerAddressDuringMint = 10000;
     config.priceWei = 0.1 ether;
     require(reserved_ <= collectionSize_);
   }
@@ -68,8 +71,8 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     );
 
     require(
-      totalSupply() + quantity <= collectionSize,
-      "not enough remaining reserved for sale to support desired mint amount"
+        totalSupply() - mintedReservedTokens + quantity <= collectionSize - reserved,
+        "not enough remaining reserved for sale to support desired mint amount"
     );
 
     require(
@@ -115,7 +118,10 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
       isSaleOn(publicSaleStartTime),
       "sale has not begun yet"
     );
-    require(totalSupply() + quantity <= collectionSize, "reached max supply");
+    require(
+        totalSupply() - mintedReservedTokens + quantity <= collectionSize - reserved,
+        "reached max supply"
+    );
     require(
       numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
       "can not mint this many"
@@ -166,15 +172,16 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
   }
 
   // For marketing etc.
-  // Reserved amount will not affect further whitelist or public mints
+  // Reserved tokens are counted separately and are not reused for whitelist or public sale
   function reserve(uint256 quantity)
     external
     onlyOwner
   {
     require(
-      totalSupply() + quantity <= reserved,
+      mintedReservedTokens + quantity <= reserved,
       "too many already minted before dev mint"
     );
+    mintedReservedTokens += quantity;
     _safeMint(msg.sender, quantity);
   }
 

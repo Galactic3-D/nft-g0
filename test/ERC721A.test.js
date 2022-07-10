@@ -79,27 +79,125 @@ const createTestSuite = ({ contract, constructorArgs }) =>
             });
 
             context("reserve", async function () {
+                beforeEach(async function () {
+                    const [owner, addr1, addr2, signer] = await ethers.getSigners();
+                    this.owner = owner;
+                    this.addr1 = addr1;
+                    this.addr2 = addr2;
+                    this.signer = signer;
+                    let currentTime = await getCurrentTimestamp();
+                    await this.erc721a.setWhitelistSaleConfig(
+                        currentTime ,
+                        this.signer.address,
+                    );
+                    await this.erc721a.setPublicSaleConfig(
+                        currentTime,
+                    );
+                });
 
-                it("in valid range", async function () {
+                it("mint reserved before everything", async function () {
                     expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("0");
                     expect(await this.erc721a.totalMinted()).to.equal("0");
+
+                    // mint batch 1
                     await this.erc721a.reserve(5);
                     expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("5");
                     expect(await this.erc721a.totalMinted()).to.equal("5");
-                    await this.erc721a.reserve(10);
-                    expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("15");
-                    expect(await this.erc721a.totalMinted()).to.equal("15");
+
+                    // mint batch 2
+                    await this.erc721a.reserve(15);
+                    expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("20");
+                    expect(await this.erc721a.totalMinted()).to.equal("20");
+
+                    // try mint one more
+                    await expect(this.erc721a.reserve(1)).to.be.revertedWith('too many already minted before dev mint');
                 });
 
-                it("over range", async function () {
-                    await expect(this.erc721a.reserve(100)).to.be.revertedWith('too many already minted before dev mint');
-                    expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("0");
+                it("mint reserved after whitelist sale", async function () {
+                    const nTotal = 200;
+                    const nBatch1 = 5;
+                    const nBatch2 = 15;
+                    const nWhitelist = nTotal - nBatch1 - nBatch2;
+                    const price = parseEther('1');
+                    expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(0);
 
-                    await this.erc721a.reserve(20);
-                    expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("20");
+                    // minting reserved batch 1
+                    await this.erc721a.reserve(nBatch1);
+                    expect(await this.erc721a.balanceOf(this.owner.address)).to.equal(nBatch1);
+                    expect(await this.erc721a.totalMinted()).to.equal(nBatch1);
+                    expect(await this.erc721a.ownerOf("1")).to.equal(this.owner.address);
 
-                    await expect(this.erc721a.reserve(5)).to.be.revertedWith('too many already minted before dev mint');
-                    expect(await this.erc721a.balanceOf(this.owner.address)).to.equal("20");
+                    // minting whitelist batch
+                    let signature = await this.signer.signMessage(
+                        this.buildWhitelistApproval(this.addr1.address, nTotal),
+                    );
+                    await this.erc721a.connect(this.addr1).whitelistMint(
+                        nWhitelist, nTotal, signature, { value: price.mul(nWhitelist) },
+                    );
+                    expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nWhitelist);
+                    expect(await this.erc721a.totalMinted()).to.equal(nBatch1 + nWhitelist);
+                    expect(await this.erc721a.ownerOf(1 + nBatch1)).to.equal(this.addr1.address);
+
+                    // try whitelistMint one more
+                    await expect(
+                        this.erc721a.connect(this.addr1).whitelistMint(
+                            1, nTotal, signature, { value: price },
+                        ),
+                    ).to.be.revertedWith('not enough remaining reserved for sale to support desired mint amount');
+
+                    // minting reserve batch 2
+                    await this.erc721a.reserve(nBatch2);
+                    expect(await this.erc721a.balanceOf(this.owner.address)).to.equal(nBatch1 + nBatch2);
+                    expect(await this.erc721a.totalMinted()).to.equal(nTotal);
+                    expect(await this.erc721a.ownerOf(1 + nBatch1 + nWhitelist)).to.equal(this.owner.address);
+
+                    // try mint one more
+                    await expect(this.erc721a.reserve(1)).to.be.revertedWith('too many already minted before dev mint');
+                    await expect(
+                        this.erc721a.connect(this.addr1).whitelistMint(1, nTotal, signature, { value: price }),
+                    ).to.be.revertedWith('not enough remaining reserved for sale to support desired mint amount');
+                });
+
+                it("mint reserved after public sale", async function () {
+                    const nTotal = 200;
+                    const nBatch1 = 5;
+                    const nBatch2 = 15;
+                    const nSale = nTotal - nBatch1 - nBatch2;
+                    const price = parseEther('1');
+                    expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(0);
+
+                    // minting reserved batch 1
+                    await this.erc721a.reserve(nBatch1);
+                    expect(await this.erc721a.balanceOf(this.owner.address)).to.equal(nBatch1);
+                    expect(await this.erc721a.totalMinted()).to.equal(nBatch1);
+                    expect(await this.erc721a.ownerOf("1")).to.equal(this.owner.address);
+
+                    // minting public sale batch
+                    await this.erc721a.connect(this.addr1).mint(
+                        nSale, { value: price.mul(nSale) },
+                    );
+                    expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nSale);
+                    expect(await this.erc721a.totalMinted()).to.equal(nBatch1 + nSale);
+                    expect(await this.erc721a.ownerOf(1 + nBatch1)).to.equal(this.addr1.address);
+
+                    // try mint one more
+                    await expect(
+                        this.erc721a.connect(this.addr1).mint(
+                            1, { value: price },
+                        ),
+                    ).to.be.revertedWith('reached max supply');
+
+                    // minting reserve batch 2
+                    await this.erc721a.reserve(nBatch2);
+                    expect(await this.erc721a.balanceOf(this.owner.address)).to.equal(nBatch1 + nBatch2);
+                    expect(await this.erc721a.totalMinted()).to.equal(nTotal);
+                    expect(await this.erc721a.ownerOf(1 + nBatch1 + nSale)).to.equal(this.owner.address);
+
+                    // try mint one more
+                    await expect(this.erc721a.reserve(1)).to.be.revertedWith('too many already minted before dev mint');
+                    await expect(
+                        this.erc721a.connect(this.addr1).mint(1, { value: price }),
+                    ).to.be.revertedWith('reached max supply');
                 });
 
                 it("from wrong user", async function () {
