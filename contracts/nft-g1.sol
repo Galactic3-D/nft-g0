@@ -44,11 +44,6 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     require(reserved_ <= collectionSize_);
   }
 
-  modifier callerIsUser() {
-    require(tx.origin == msg.sender, "The caller is another contract");
-    _;
-  }
-
   function _startTokenId() internal override view virtual returns (uint256) {
       return 1;
   }
@@ -60,7 +55,6 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
   )
     external
     payable
-    callerIsUser
   {
     uint256 price = uint256(config.priceWei);
     uint256 whitelistSaleStartTime = uint256(config.whitelistSaleStartTime);
@@ -109,7 +103,6 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
   function mint(uint256 quantity)
     external
     payable
-    callerIsUser
   {
     uint256 publicPrice = uint256(config.priceWei);
     uint256 publicSaleStartTime = uint256(config.publicSaleStartTime);
