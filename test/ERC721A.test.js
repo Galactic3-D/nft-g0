@@ -137,6 +137,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
                     expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nWhitelist);
                     expect(await this.erc721a.totalMinted()).to.equal(nBatch1 + nWhitelist);
                     expect(await this.erc721a.ownerOf(1 + nBatch1)).to.equal(this.addr1.address);
+                    expect(await this.erc721a.totalReservedMinted()).to.equal(nBatch1);
 
                     // try whitelistMint one more
                     await expect(
@@ -179,6 +180,7 @@ const createTestSuite = ({ contract, constructorArgs }) =>
                     expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nSale);
                     expect(await this.erc721a.totalMinted()).to.equal(nBatch1 + nSale);
                     expect(await this.erc721a.ownerOf(1 + nBatch1)).to.equal(this.addr1.address);
+                    expect(await this.erc721a.totalReservedMinted()).to.equal(nBatch1);
 
                     // try mint one more
                     await expect(

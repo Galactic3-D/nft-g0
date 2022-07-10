@@ -241,4 +241,12 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
           return _currentIndex - _startTokenId();
       }
   }
+
+    function totalReservedMinted()
+    external
+    view
+    returns (uint256)
+    {
+        return mintedReservedTokens;
+    }
 }
