@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.4;
 
-import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract ERC721ReceiverMock is IERC721Receiver {
     enum Error {
@@ -15,7 +15,13 @@ contract ERC721ReceiverMock is IERC721Receiver {
 
     bytes4 private immutable _retval;
 
-    event Received(address operator, address from, uint256 tokenId, bytes data, uint256 gas);
+    event Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes data,
+        uint256 gas
+    );
 
     constructor(bytes4 retval) {
         _retval = retval;
