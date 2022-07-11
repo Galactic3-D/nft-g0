@@ -17,6 +17,7 @@
   "rules": {
     "func-names": ["off"],
     "function-paren-newline": ["error", "consistent"],
+    "import/no-extraneous-dependencies": ["off"],
     "max-len": ["error", { "code": 120 }],
     "no-await-in-loop": "off",
     "no-restricted-syntax": ["error", "LabeledStatement", "WithStatement"],
