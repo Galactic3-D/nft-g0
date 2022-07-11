@@ -33,4 +33,4 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
   });
 };
 
-describe('ERC721A', createTestSuite({ contract: 'NFTG0RARE', constructorArgs: ['NAME', 'SYMBOL', 2000, 2000] }));
+describe('ERC721A', createTestSuite({ contract: 'NFTG0RARE', constructorArgs: ['NAME', 'SYMBOL', 2000, 2000, 100_000] }));
