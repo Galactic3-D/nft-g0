@@ -31,12 +31,14 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         string memory symbol_,
         uint256 collectionSize_,
         uint256 reserved_,
-        uint256 maxPerAddressDuringMint_
+        uint256 maxPerAddressDuringMint_,
+        uint64 priceWei_
     ) ERC721A(name_, symbol_) {
         reserved = reserved_;
         collectionSize = collectionSize_;
         maxPerAddressDuringMint = maxPerAddressDuringMint_;
-        config.priceWei = 0.1 ether;
+        config.priceWei = priceWei_;
+
         require(reserved_ <= collectionSize_);
 
         mintedReservedTokens = 0;
