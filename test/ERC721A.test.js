@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { deployContract } = require('./helpers.js');
+const { deployContract } = require('./helpers');
 
 const { parseEther } = ethers.utils;
 

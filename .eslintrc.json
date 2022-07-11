@@ -5,7 +5,9 @@
     "es2021": true,
     "mocha": true
   },
-  "extends": "eslint:recommended",
+  "extends": [
+    "airbnb-base"
+  ],
   "parserOptions": {
     "ecmaVersion": "latest"
   },
@@ -13,7 +15,12 @@
     "ethers": "readonly"
   },
   "rules": {
+    "func-names": ["off"],
+    "function-paren-newline": ["error", "consistent"],
     "max-len": ["error", { "code": 120 }],
-    "no-unused-vars": [2, {"vars": "all", "varsIgnorePattern": "^_"}]
+    "no-await-in-loop": "off",
+    "no-restricted-syntax": ["error", "LabeledStatement", "WithStatement"],
+    "no-unused-vars": ["error", { "vars": "all", "varsIgnorePattern": "^_" }],
+    "prefer-arrow-callback": "off"
   }
 }
