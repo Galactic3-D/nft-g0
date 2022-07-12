@@ -29,6 +29,11 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     // metadata URI
     string private _baseTokenURI;
 
+    event SetPrice(uint64 indexed price);
+    event SetWhitelistSaleConfig(uint32 indexed timestamp, address indexed signer);
+    event SetPublicSaleConfig(uint32 indexed timestamp);
+    event SetBaseURI(string indexed baseURI);
+
     constructor(
         string memory name_,
         string memory symbol_,
@@ -102,15 +107,18 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
 
     function setPrice(uint64 price) external onlyOwner {
         config.priceWei = price;
+        emit SetPrice(price);
     }
 
     function setWhitelistSaleConfig(uint32 timestamp, address signer) external onlyOwner {
         config.whitelistSaleStartTime = timestamp;
         config.whitelistSigner = signer;
+        emit SetWhitelistSaleConfig(timestamp, signer);
     }
 
     function setPublicSaleConfig(uint32 timestamp) external onlyOwner {
         config.publicSaleStartTime = timestamp;
+        emit SetPublicSaleConfig(timestamp);
     }
 
     // For marketing etc.
@@ -123,6 +131,7 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
 
     function setBaseURI(string calldata baseURI) external onlyOwner {
         _baseTokenURI = baseURI;
+        emit SetBaseURI(baseURI);
     }
 
     function withdraw() external onlyOwner nonReentrant {
