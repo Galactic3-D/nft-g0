@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "erc721a/contracts/ERC721A.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import 'erc721a/contracts/ERC721A.sol';
+import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
+import '@openzeppelin/contracts/utils/Strings.sol';
 
-import "./library/AddressString.sol";
+import './library/AddressString.sol';
 
 contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
+    uint256 public immutable maxPerAddressDuringMint;
+    uint256 public immutable reserved;
+    uint256 public immutable collectionSize;
+
     struct SaleConfig {
         uint32 whitelistSaleStartTime;
         uint32 publicSaleStartTime;
         uint64 priceWei;
         address whitelistSigner;
     }
-
-    uint256 public immutable maxPerAddressDuringMint;
-    uint256 public immutable reserved;
-    uint256 public immutable collectionSize;
 
     SaleConfig public config;
 
@@ -55,27 +55,20 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         uint256 price = uint256(config.priceWei);
         uint256 whitelistSaleStartTime = uint256(config.whitelistSaleStartTime);
 
-        require(
-            isSaleOn(whitelistSaleStartTime),
-            "whitelist sale has not begun yet"
-        );
+        require(isSaleOn(whitelistSaleStartTime), 'whitelist sale has not begun yet');
 
         require(
-            totalSupply() - mintedReservedTokens + quantity <=
-                collectionSize - reserved,
-            "not enough remaining reserved for sale to support desired mint amount"
+            totalSupply() - mintedReservedTokens + quantity <= collectionSize - reserved,
+            'not enough remaining reserved for sale to support desired mint amount'
         );
 
-        require(
-            numberMinted(msg.sender) + quantity <= approvedMaxQuantity,
-            "can not mint this many"
-        );
+        require(numberMinted(msg.sender) + quantity <= approvedMaxQuantity, 'can not mint this many');
 
         bytes memory data = abi.encodePacked(
             Strings.toString(block.chainid),
-            ":",
+            ':',
             AddressString.toAsciiString(msg.sender),
-            ":",
+            ':',
             Strings.toString(approvedMaxQuantity)
         );
         bytes32 hash = ECDSA.toEthSignedMessageHash(data);
@@ -83,9 +76,9 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
 
         if (signer != config.whitelistSigner) {
             bytes memory errorMessage = abi.encodePacked(
-                "wrong signature, expected message ",
+                'wrong signature, expected message ',
                 data,
-                " signed by ",
+                ' signed by ',
                 AddressString.toAsciiString(config.whitelistSigner)
             );
             revert(string(errorMessage));
@@ -100,16 +93,9 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         uint256 publicPrice = uint256(config.priceWei);
         uint256 publicSaleStartTime = uint256(config.publicSaleStartTime);
 
-        require(isSaleOn(publicSaleStartTime), "sale has not begun yet");
-        require(
-            totalSupply() - mintedReservedTokens + quantity <=
-                collectionSize - reserved,
-            "reached max supply"
-        );
-        require(
-            numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
-            "can not mint this many"
-        );
+        require(isSaleOn(publicSaleStartTime), 'sale has not begun yet');
+        require(totalSupply() - mintedReservedTokens + quantity <= collectionSize - reserved, 'reached max supply');
+        require(numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint, 'can not mint this many');
         _safeMint(msg.sender, quantity);
         refundIfOver(publicPrice * quantity);
     }
@@ -118,10 +104,7 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         config.priceWei = price;
     }
 
-    function setWhitelistSaleConfig(uint32 timestamp, address signer)
-        external
-        onlyOwner
-    {
+    function setWhitelistSaleConfig(uint32 timestamp, address signer) external onlyOwner {
         config.whitelistSaleStartTime = timestamp;
         config.whitelistSigner = signer;
     }
@@ -133,10 +116,7 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     // For marketing etc.
     // Reserved tokens are counted separately and are not reused for whitelist or public sale
     function reserve(uint256 quantity) external onlyOwner {
-        require(
-            mintedReservedTokens + quantity <= reserved,
-            "too many already minted before dev mint"
-        );
+        require(mintedReservedTokens + quantity <= reserved, 'too many already minted before dev mint');
         mintedReservedTokens += quantity;
         _safeMint(msg.sender, quantity);
     }
@@ -146,15 +126,11 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function withdraw() external onlyOwner nonReentrant {
-        (bool success, ) = msg.sender.call{value: address(this).balance}("");
-        require(success, "Transfer failed.");
+        (bool success, ) = msg.sender.call{value: address(this).balance}('');
+        require(success, 'Transfer failed.');
     }
 
-    function getOwnershipData(uint256 tokenId)
-        external
-        view
-        returns (TokenOwnership memory)
-    {
+    function getOwnershipData(uint256 tokenId) external view returns (TokenOwnership memory) {
         return _ownershipOf(tokenId);
     }
 
@@ -179,7 +155,7 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function refundIfOver(uint256 price) private {
-        require(msg.value >= price, "Need to send more ETH.");
+        require(msg.value >= price, 'Need to send more ETH.');
         if (msg.value > price) {
             payable(msg.sender).transfer(msg.value - price);
         }
