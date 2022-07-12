@@ -13,6 +13,71 @@ const getCurrentTimestamp = async () => {
 };
 
 const createTestSuite = ({ contract, constructorArgs }) => function () {
+  context('', async () => {
+    beforeEach(async function () {
+      this.erc721a = await deployContract(contract, ['NAME', 'SYMBOL', 200, 20, 3, parseEther('5')]);
+      this.startTokenId = this.erc721a.startTokenId ? (await this.erc721a.startTokenId()).toNumber() : 0;
+      const [owner, addr1, addr2, signer] = await ethers.getSigners();
+      this.owner = owner;
+      this.addr1 = addr1;
+      this.addr2 = addr2;
+      this.signer = signer;
+      const { chainId } = await ethers.provider.getNetwork();
+      this.chainId = chainId;
+      this.buildWhitelistApproval = (address, quantity) => `${chainId}:${address.toUpperCase()}:${quantity}`;
+      const currentTime = await getCurrentTimestamp();
+      await this.erc721a.setWhitelistSaleConfig(
+        currentTime,
+        this.signer.address,
+      );
+      await this.erc721a.setPublicSaleConfig(
+        currentTime,
+      );
+    });
+
+    it('whitelistMint max amount', async function () {
+      const nTotal = 200;
+      const nWhitelist = 3;
+      const price = parseEther('5');
+
+      // minting whitelist batch
+      const signature = await this.signer.signMessage(
+        this.buildWhitelistApproval(this.addr1.address, nTotal),
+      );
+      await this.erc721a.connect(this.addr1).whitelistMint(
+        nWhitelist, nTotal, signature, { value: price.mul(nWhitelist) },
+      );
+      expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nWhitelist);
+
+      // whitelistMint one more, should be allowed since it's whitelist
+      await this.erc721a.connect(this.addr1).whitelistMint(
+        1, nTotal, signature, { value: price },
+      );
+      expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nWhitelist + 1);
+
+      // regular mint should fail, since already whitelistMint fixed
+      await expect(
+        this.erc721a.connect(this.addr1).mint(1, { value: price }),
+      ).to.be.revertedWith('can not mint this many');
+    });
+
+    it('mint max amount', async function () {
+      const nMint = 3;
+      const price = parseEther('5');
+
+      // minting batch
+      await this.erc721a.connect(this.addr1).mint(
+        nMint, { value: price.mul(nMint) },
+      );
+      expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nMint);
+
+      // regular mint should fail, since already whitelistMint fixed
+      await expect(
+        this.erc721a.connect(this.addr1).mint(1, { value: price }),
+      ).to.be.revertedWith('can not mint this many');
+    });
+  });
+
   context(`${contract}`, () => {
     beforeEach(async function () {
       this.erc721a = await deployContract(contract, constructorArgs);
