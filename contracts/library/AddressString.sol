@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-pragma solidity >=0.5.0;
+pragma solidity ^0.8.4;
 
 library AddressString {
     // converts an address to the uppercase hex string, extracting only len bytes (up to 20, multiple of 2)
     function toAsciiString(address addr) internal pure returns (string memory) {
         bytes memory s = new bytes(42);
         uint160 addrNum = uint160(addr);
-        s[0] = "0";
-        s[1] = "X";
+        s[0] = '0';
+        s[1] = 'X';
         for (uint256 i = 0; i < 40 / 2; i++) {
             // shift right and truncate all but the least significant byte to extract the byte at position 19-i
             uint8 b = uint8(addrNum >> (8 * (19 - i)));
