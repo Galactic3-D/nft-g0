@@ -10,10 +10,6 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./library/AddressString.sol";
 
 contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
-    uint256 public immutable maxPerAddressDuringMint;
-    uint256 public immutable reserved;
-    uint256 public immutable collectionSize;
-
     struct SaleConfig {
         uint32 whitelistSaleStartTime;
         uint32 publicSaleStartTime;
@@ -21,10 +17,17 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         address whitelistSigner;
     }
 
+    uint256 public immutable maxPerAddressDuringMint;
+    uint256 public immutable reserved;
+    uint256 public immutable collectionSize;
+
     SaleConfig public config;
 
     // Reserved amount is counted separately and cannot be used in whitelist or public sale
     uint256 public mintedReservedTokens;
+
+    // metadata URI
+    string private _baseTokenURI;
 
     constructor(
         string memory name_,
@@ -34,12 +37,12 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         uint256 maxPerAddressDuringMint_,
         uint64 priceWei_
     ) ERC721A(name_, symbol_) {
-        reserved = reserved_;
+        require(reserved_ <= collectionSize_);
+
         collectionSize = collectionSize_;
+        reserved = reserved_;
         maxPerAddressDuringMint = maxPerAddressDuringMint_;
         config.priceWei = priceWei_;
-
-        require(reserved_ <= collectionSize_);
 
         mintedReservedTokens = 0;
     }
@@ -111,17 +114,6 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         refundIfOver(publicPrice * quantity);
     }
 
-    function refundIfOver(uint256 price) private {
-        require(msg.value >= price, "Need to send more ETH.");
-        if (msg.value > price) {
-            payable(msg.sender).transfer(msg.value - price);
-        }
-    }
-
-    function isSaleOn(uint256 _startTime) public view returns (bool) {
-        return _startTime != 0 && block.timestamp >= _startTime;
-    }
-
     function setPrice(uint64 price) external onlyOwner {
         config.priceWei = price;
     }
@@ -149,13 +141,6 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         _safeMint(msg.sender, quantity);
     }
 
-    // // metadata URI
-    string private _baseTokenURI;
-
-    function _baseURI() internal view virtual override returns (string memory) {
-        return _baseTokenURI;
-    }
-
     function setBaseURI(string calldata baseURI) external onlyOwner {
         _baseTokenURI = baseURI;
     }
@@ -163,10 +148,6 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     function withdraw() external onlyOwner nonReentrant {
         (bool success, ) = msg.sender.call{value: address(this).balance}("");
         require(success, "Transfer failed.");
-    }
-
-    function numberMinted(address owner) public view returns (uint256) {
-        return _numberMinted(owner);
     }
 
     function getOwnershipData(uint256 tokenId)
@@ -183,5 +164,24 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
 
     function totalReservedMinted() external view returns (uint256) {
         return mintedReservedTokens;
+    }
+
+    function isSaleOn(uint256 _startTime) public view returns (bool) {
+        return _startTime != 0 && block.timestamp >= _startTime;
+    }
+
+    function numberMinted(address owner) public view returns (uint256) {
+        return _numberMinted(owner);
+    }
+
+    function _baseURI() internal view virtual override returns (string memory) {
+        return _baseTokenURI;
+    }
+
+    function refundIfOver(uint256 price) private {
+        require(msg.value >= price, "Need to send more ETH.");
+        if (msg.value > price) {
+            payable(msg.sender).transfer(msg.value - price);
+        }
     }
 }
