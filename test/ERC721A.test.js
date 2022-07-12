@@ -295,14 +295,24 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
           this.buildWhitelistApproval(this.addr1.address, 2),
         );
 
+        let userBalanceBefore = await ethers.provider.getBalance(this.addr1.address);
+        let tokenBalanceBefore = await ethers.provider.getBalance(this.erc721a.address);
         await this.erc721a.connect(this.addr1).whitelistMint(
           1,
           2,
           signature,
-          { value: parseEther('1.1') },
+          { value: parseEther('1.9') },
         );
+        let userBalanceAfter = await ethers.provider.getBalance(this.addr1.address);
+        let tokenBalanceAfter = await ethers.provider.getBalance(this.erc721a.address);
+
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal('1');
         expect(await this.erc721a.ownerOf(this.startTokenId)).to.equal(this.addr1.address);
+
+        expect((userBalanceBefore - userBalanceAfter) / 1e18).to.be.below(1.01);
+        expect((userBalanceBefore - userBalanceAfter) / 1e18).to.be.above(1.0);
+
+        expect((tokenBalanceAfter - tokenBalanceBefore) / 1e18).to.eq(1.0);
       });
 
       it('invalid signature', async function () {
@@ -517,8 +527,18 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
 
       it('enough money', async function () {
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal('0');
+        let userBalanceBefore = await ethers.provider.getBalance(this.addr1.address);
+        let tokenBalanceBefore = await ethers.provider.getBalance(this.erc721a.address);
         await this.erc721a.connect(this.addr1).mint(1, { value: parseEther('4.0') });
+        let userBalanceAfter = await ethers.provider.getBalance(this.addr1.address);
+        let tokenBalanceAfter = await ethers.provider.getBalance(this.erc721a.address);
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal('1');
+
+        // check refund is working
+        expect((userBalanceBefore - userBalanceAfter) / 1e18).to.be.below(1.01);
+        expect((userBalanceBefore - userBalanceAfter) / 1e18).to.be.above(1.0);
+
+        expect((tokenBalanceAfter - tokenBalanceBefore) / 1e18).to.eq(1.0);
       });
 
       it('not enough money', async function () {
