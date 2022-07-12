@@ -55,7 +55,7 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
       );
       expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nWhitelist + 1);
 
-      // regular mint should fail, since already whitelistMint fixed
+      // regular mint should fail, since whitelistMint already called
       await expect(
         this.erc721a.connect(this.addr1).mint(1, { value: price }),
       ).to.be.revertedWith('can not mint this many');
@@ -71,7 +71,7 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
       );
       expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nMint);
 
-      // regular mint should fail, since already whitelistMint fixed
+      // regular mint should fail, since mint already minted
       await expect(
         this.erc721a.connect(this.addr1).mint(1, { value: price }),
       ).to.be.revertedWith('can not mint this many');
