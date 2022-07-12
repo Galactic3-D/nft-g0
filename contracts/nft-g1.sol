@@ -157,7 +157,8 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
     function refundIfOver(uint256 price) private {
         require(msg.value >= price, 'Need to send more ETH.');
         if (msg.value > price) {
-            payable(msg.sender).transfer(msg.value - price);
+            (bool success, ) = msg.sender.call{value: msg.value - price}('');
+            require(success, 'Transfer failed.');
         }
     }
 }
