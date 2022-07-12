@@ -78,13 +78,15 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         bytes32 hash = ECDSA.toEthSignedMessageHash(data);
         address signer = ECDSA.recover(hash, signature);
 
-        bytes memory errorMessage = abi.encodePacked(
-            "wrong signature, expected message ",
-            data,
-            " signed by ",
-            AddressString.toAsciiString(config.whitelistSigner)
-        );
-        require(signer == config.whitelistSigner, string(errorMessage));
+        if (signer != config.whitelistSigner) {
+            bytes memory errorMessage = abi.encodePacked(
+                "wrong signature, expected message ",
+                data,
+                " signed by ",
+                AddressString.toAsciiString(config.whitelistSigner)
+            );
+            revert(string(errorMessage));
+        }
 
         uint256 totalCost = price * quantity;
         _safeMint(msg.sender, quantity);
