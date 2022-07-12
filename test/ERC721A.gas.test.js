@@ -1,6 +1,8 @@
 const { expect } = require('chai');
 const { deployContract } = require('./helpers');
 
+const { parseEther } = ethers.utils;
+
 const RECEIVER_MAGIC_VALUE = '0x150b7a02';
 
 function range(start, end) {
@@ -33,4 +35,10 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
   });
 };
 
-describe('ERC721A', createTestSuite({ contract: 'NFTG0RARE', constructorArgs: ['NAME', 'SYMBOL', 2000, 2000] }));
+describe(
+  'ERC721A',
+  createTestSuite({
+    contract: 'NFTG0RARE',
+    constructorArgs: ['NAME', 'SYMBOL', 2000, 2000, 100_000, parseEther('0.1')],
+  }),
+);

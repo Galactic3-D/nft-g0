@@ -13,6 +13,71 @@ const getCurrentTimestamp = async () => {
 };
 
 const createTestSuite = ({ contract, constructorArgs }) => function () {
+  context('', async () => {
+    beforeEach(async function () {
+      this.erc721a = await deployContract(contract, ['NAME', 'SYMBOL', 200, 20, 3, parseEther('5')]);
+      this.startTokenId = this.erc721a.startTokenId ? (await this.erc721a.startTokenId()).toNumber() : 0;
+      const [owner, addr1, addr2, signer] = await ethers.getSigners();
+      this.owner = owner;
+      this.addr1 = addr1;
+      this.addr2 = addr2;
+      this.signer = signer;
+      const { chainId } = await ethers.provider.getNetwork();
+      this.chainId = chainId;
+      this.buildWhitelistApproval = (address, quantity) => `${chainId}:${address.toUpperCase()}:${quantity}`;
+      const currentTime = await getCurrentTimestamp();
+      await this.erc721a.setWhitelistSaleConfig(
+        currentTime,
+        this.signer.address,
+      );
+      await this.erc721a.setPublicSaleConfig(
+        currentTime,
+      );
+    });
+
+    it('whitelistMint max amount', async function () {
+      const nTotal = 200;
+      const nWhitelist = 3;
+      const price = parseEther('5');
+
+      // minting whitelist batch
+      const signature = await this.signer.signMessage(
+        this.buildWhitelistApproval(this.addr1.address, nTotal),
+      );
+      await this.erc721a.connect(this.addr1).whitelistMint(
+        nWhitelist, nTotal, signature, { value: price.mul(nWhitelist) },
+      );
+      expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nWhitelist);
+
+      // whitelistMint one more, should be allowed since it's whitelist
+      await this.erc721a.connect(this.addr1).whitelistMint(
+        1, nTotal, signature, { value: price },
+      );
+      expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nWhitelist + 1);
+
+      // regular mint should fail, since whitelistMint already called
+      await expect(
+        this.erc721a.connect(this.addr1).mint(1, { value: price }),
+      ).to.be.revertedWith('can not mint this many');
+    });
+
+    it('mint max amount', async function () {
+      const nMint = 3;
+      const price = parseEther('5');
+
+      // minting batch
+      await this.erc721a.connect(this.addr1).mint(
+        nMint, { value: price.mul(nMint) },
+      );
+      expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nMint);
+
+      // regular mint should fail, since mint already minted
+      await expect(
+        this.erc721a.connect(this.addr1).mint(1, { value: price }),
+      ).to.be.revertedWith('can not mint this many');
+    });
+  });
+
   context(`${contract}`, () => {
     beforeEach(async function () {
       this.erc721a = await deployContract(contract, constructorArgs);
@@ -58,13 +123,13 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
         await this.erc721a.reserve(5);
         expect(await this.erc721a.totalMinted()).to.equal('5');
 
-        expect(await this.erc721a.tokenURI(1)).to.be.equal('');
+        expect(await this.erc721a.tokenURI(this.startTokenId)).to.be.equal('');
 
         const prefix = 'http://example.com/tokens/';
         await this.erc721a.setBaseURI(prefix);
 
-        expect(await this.erc721a.tokenURI(5)).to.be.equal(`${prefix}5`);
-        await expect(this.erc721a.tokenURI(6)).to.be.revertedWith('URIQueryForNonexistentToken');
+        expect(await this.erc721a.tokenURI(this.startTokenId + 4)).to.be.equal(`${prefix}${this.startTokenId + 4}`);
+        await expect(this.erc721a.tokenURI(this.startTokenId + 5)).to.be.revertedWith('URIQueryForNonexistentToken');
 
         const evilPrefix = 'http://evil.com/tokens';
         await expect(this.erc721a.connect(this.addr1).setBaseURI(evilPrefix))
@@ -119,7 +184,7 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
         await this.erc721a.reserve(nBatch1);
         expect(await this.erc721a.balanceOf(this.owner.address)).to.equal(nBatch1);
         expect(await this.erc721a.totalMinted()).to.equal(nBatch1);
-        expect(await this.erc721a.ownerOf('1')).to.equal(this.owner.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId)).to.equal(this.owner.address);
 
         // minting whitelist batch
         const signature = await this.signer.signMessage(
@@ -130,7 +195,7 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
         );
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nWhitelist);
         expect(await this.erc721a.totalMinted()).to.equal(nBatch1 + nWhitelist);
-        expect(await this.erc721a.ownerOf(1 + nBatch1)).to.equal(this.addr1.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId + nBatch1)).to.equal(this.addr1.address);
         expect(await this.erc721a.totalReservedMinted()).to.equal(nBatch1);
 
         // try whitelistMint one more
@@ -142,7 +207,7 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
         await this.erc721a.reserve(nBatch2);
         expect(await this.erc721a.balanceOf(this.owner.address)).to.equal(nBatch1 + nBatch2);
         expect(await this.erc721a.totalMinted()).to.equal(nTotal);
-        expect(await this.erc721a.ownerOf(1 + nBatch1 + nWhitelist)).to.equal(this.owner.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId + nBatch1 + nWhitelist)).to.equal(this.owner.address);
 
         // try mint one more
         await expect(this.erc721a.reserve(1)).to.be.revertedWith('too many already minted before dev mint');
@@ -163,13 +228,13 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
         await this.erc721a.reserve(nBatch1);
         expect(await this.erc721a.balanceOf(this.owner.address)).to.equal(nBatch1);
         expect(await this.erc721a.totalMinted()).to.equal(nBatch1);
-        expect(await this.erc721a.ownerOf('1')).to.equal(this.owner.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId)).to.equal(this.owner.address);
 
         // minting public sale batch
         await this.erc721a.connect(this.addr1).mint(nSale, { value: price.mul(nSale) });
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal(nSale);
         expect(await this.erc721a.totalMinted()).to.equal(nBatch1 + nSale);
-        expect(await this.erc721a.ownerOf(1 + nBatch1)).to.equal(this.addr1.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId + nBatch1)).to.equal(this.addr1.address);
         expect(await this.erc721a.totalReservedMinted()).to.equal(nBatch1);
 
         // try mint one more
@@ -181,7 +246,7 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
         await this.erc721a.reserve(nBatch2);
         expect(await this.erc721a.balanceOf(this.owner.address)).to.equal(nBatch1 + nBatch2);
         expect(await this.erc721a.totalMinted()).to.equal(nTotal);
-        expect(await this.erc721a.ownerOf(1 + nBatch1 + nSale)).to.equal(this.owner.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId + nBatch1 + nSale)).to.equal(this.owner.address);
 
         // try mint one more
         await expect(this.erc721a.reserve(1)).to.be.revertedWith('too many already minted before dev mint');
@@ -199,10 +264,12 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
         await this.erc721a.reserve(5);
         await this.erc721a.connect(this.owner).setApprovalForAll(this.addr1.address, true);
         expect(await this.erc721a.balanceOf(this.owner.address)).to.equal('5');
-        expect(await this.erc721a.ownerOf('2')).to.equal(this.owner.address);
-        await this.erc721a.connect(this.addr1).transferFrom(this.owner.address, this.addr1.address, 2);
+        expect(await this.erc721a.ownerOf(this.startTokenId + 1)).to.equal(this.owner.address);
+        await this.erc721a.connect(this.addr1).transferFrom(
+          this.owner.address, this.addr1.address, this.startTokenId + 1,
+        );
         expect(await this.erc721a.balanceOf(this.owner.address)).to.equal('4');
-        expect(await this.erc721a.ownerOf('2')).to.equal(this.addr1.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId + 1)).to.equal(this.addr1.address);
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal('1');
       });
     });
@@ -235,7 +302,7 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
           { value: parseEther('1.1') },
         );
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal('1');
-        expect(await this.erc721a.ownerOf('1')).to.equal(this.addr1.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId)).to.equal(this.addr1.address);
       });
 
       it('invalid signature', async function () {
@@ -278,7 +345,7 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
           { value: parseEther('1.1') },
         );
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal('1');
-        expect(await this.erc721a.ownerOf('1')).to.equal(this.addr1.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId)).to.equal(this.addr1.address);
       });
 
       it('buying more than total token supply', async function () {
@@ -309,10 +376,12 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
         );
         await this.erc721a.connect(this.addr1).setApprovalForAll(this.signer.address, true);
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal('1');
-        await this.erc721a.connect(this.signer).transferFrom(this.addr1.address, this.signer.address, 1);
+        await this.erc721a.connect(this.signer).transferFrom(
+          this.addr1.address, this.signer.address, this.startTokenId,
+        );
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal('0');
         expect(await this.erc721a.balanceOf(this.signer.address)).to.equal('1');
-        expect(await this.erc721a.ownerOf('1')).to.equal(this.signer.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId)).to.equal(this.signer.address);
       });
 
       it('change sale start date', async function () {
@@ -385,7 +454,7 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
           { value: parseEther('1.1') },
         );
         expect(await this.erc721a.balanceOf(this.addr1.address)).to.equal('1');
-        expect(await this.erc721a.ownerOf('21')).to.equal(this.addr1.address);
+        expect(await this.erc721a.ownerOf(this.startTokenId + 20)).to.equal(this.addr1.address);
         expect(await this.erc721a.totalMinted()).to.equal('21');
       });
     });
@@ -488,4 +557,10 @@ const createTestSuite = ({ contract, constructorArgs }) => function () {
   });
 };
 
-describe('ERC721A', createTestSuite({ contract: 'NFTG0RARE', constructorArgs: ['NAME', 'SYMBOL', 200, 20] }));
+describe(
+  'ERC721A',
+  createTestSuite({
+    contract: 'NFTG0RARE',
+    constructorArgs: ['NAME', 'SYMBOL', 200, 20, 100_000, parseEther('0.1')],
+  }),
+);

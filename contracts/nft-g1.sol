@@ -30,19 +30,18 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         string memory name_,
         string memory symbol_,
         uint256 collectionSize_,
-        uint256 reserved_
+        uint256 reserved_,
+        uint256 maxPerAddressDuringMint_,
+        uint64 priceWei_
     ) ERC721A(name_, symbol_) {
         reserved = reserved_;
-        mintedReservedTokens = 0;
         collectionSize = collectionSize_;
-        // TODO: make configurable
-        maxPerAddressDuringMint = 10000;
-        config.priceWei = 0.1 ether;
-        require(reserved_ <= collectionSize_);
-    }
+        maxPerAddressDuringMint = maxPerAddressDuringMint_;
+        config.priceWei = priceWei_;
 
-    function _startTokenId() internal view virtual override returns (uint256) {
-        return 1;
+        require(reserved_ <= collectionSize_);
+
+        mintedReservedTokens = 0;
     }
 
     function whitelistMint(
@@ -79,13 +78,15 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         bytes32 hash = ECDSA.toEthSignedMessageHash(data);
         address signer = ECDSA.recover(hash, signature);
 
-        bytes memory errorMessage = abi.encodePacked(
-            "wrong signature, expected message ",
-            data,
-            " signed by ",
-            AddressString.toAsciiString(config.whitelistSigner)
-        );
-        require(signer == config.whitelistSigner, string(errorMessage));
+        if (signer != config.whitelistSigner) {
+            bytes memory errorMessage = abi.encodePacked(
+                "wrong signature, expected message ",
+                data,
+                " signed by ",
+                AddressString.toAsciiString(config.whitelistSigner)
+            );
+            revert(string(errorMessage));
+        }
 
         uint256 totalCost = price * quantity;
         _safeMint(msg.sender, quantity);
@@ -176,12 +177,8 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         return _ownershipOf(tokenId);
     }
 
-    function totalMinted() public view returns (uint256) {
-        // Counter underflow is impossible as _currentIndex does not decrement,
-        // and it is initialized to _startTokenId()
-        unchecked {
-            return _currentIndex - _startTokenId();
-        }
+    function totalMinted() external view returns (uint256) {
+        return _totalMinted();
     }
 
     function totalReservedMinted() external view returns (uint256) {
