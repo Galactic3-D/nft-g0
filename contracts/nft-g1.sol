@@ -44,10 +44,6 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         mintedReservedTokens = 0;
     }
 
-    function _startTokenId() internal view virtual override returns (uint256) {
-        return 1;
-    }
-
     function whitelistMint(
         uint256 quantity,
         uint256 approvedMaxQuantity,
