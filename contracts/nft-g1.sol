@@ -179,12 +179,8 @@ contract NFTG0RARE is Ownable, ERC721A, ReentrancyGuard {
         return _ownershipOf(tokenId);
     }
 
-    function totalMinted() public view returns (uint256) {
-        // Counter underflow is impossible as _currentIndex does not decrement,
-        // and it is initialized to _startTokenId()
-        unchecked {
-            return _currentIndex - _startTokenId();
-        }
+    function totalMinted() external view returns (uint256) {
+        return _totalMinted();
     }
 
     function totalReservedMinted() external view returns (uint256) {
